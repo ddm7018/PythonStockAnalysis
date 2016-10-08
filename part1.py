@@ -94,7 +94,7 @@ def pandas_candlestick_ohlc(dat, stick = "day", otherseries = None):
 
 
 # We will look at stock prices over the past year, starting at January 1, 2016
-start 	= datetime.datetime(2016,1,1)
+start 	= datetime.datetime(2012,1,1)
 end 	= datetime.date.today()
 
 # Let's get Apple stock data; Apple's ticker symbol is AAPL
@@ -105,6 +105,7 @@ type(apple)
 
 pylab.rcParams['figure.figsize'] = (15, 9)   # Change the size of plots
 
+
 microsoft 	= web.DataReader("MSFT", "yahoo", start, end)
 google 		= web.DataReader("GOOG", "yahoo", start, end)
 
@@ -113,24 +114,24 @@ stocks 		= pd.DataFrame({"AAPL": apple["Adj Close"],
                       "MSFT": microsoft["Adj Close"],
                       "GOOG": google["Adj Close"]})
 
-stocks.plot(secondary_y = ["AAPL", "MSFT"], grid = True)
-plt.show()
+#stocks.plot(secondary_y = ["AAPL", "MSFT"], grid = True)
+#plt.show()
 
 stock_return = stocks.apply(lambda x: x / x[0])
-stock_return.plot(grid = True).axhline(y = 1, color = "black", lw = 2)
-plt.show()
+#stock_return.plot(grid = True).axhline(y = 1, color = "black", lw = 2)
+#plt.show()
 
 stock_change = stocks.apply(lambda x: np.log(x) - np.log(x.shift(1)))
-stock_change.plot(grid = True).axhline(y = 0, color = "black", lw = 2)
-plt.show()
+#stock_change.plot(grid = True).axhline(y = 0, color = "black", lw = 2)
+#plt.show()
 
 apple["20d"] = np.round(apple["Close"].rolling(window = 20, center = False).mean(), 2)
-pandas_candlestick_ohlc(apple.loc['2016-01-04':'2016-08-07',:], otherseries = "20d")
-plt.show()
+#pandas_candlestick_ohlc(apple.loc['2016-01-04':'2016-08-07',:], otherseries = "20d")
+#plt.show()
 
 
 apple["50d"] = np.round(apple["Close"].rolling(window = 50, center = False).mean(), 2)
 apple["200d"] = np.round(apple["Close"].rolling(window = 200, center = False).mean(), 2)
 
-pandas_candlestick_ohlc(apple.loc['2016-01-04':'2016-08-07',:], otherseries = ["20d", "50d", "200d"])
+#pandas_candlestick_ohlc(apple.loc['2016-01-04':'2016-08-07',:], otherseries = ["20d", "50d", "200d"])
 

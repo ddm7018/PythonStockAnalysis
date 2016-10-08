@@ -200,7 +200,7 @@ def ma_crossover_orders(stocks, fast, slow):
     return trades
 
 
-def backtest(signals, cash, port_value = .1, batch = 100):
+def backtest(signals, cash, port_value = .1, batch = 100, flat_commision = 35):
     """
     :param signals: pandas DataFrame containing buy and sell signals with stock prices and symbols, like that returned by ma_crossover_orders
     :param cash: integer for starting cash value
@@ -231,21 +231,35 @@ def backtest(signals, cash, port_value = .1, batch = 100):
         shares = portfolio.setdefault(index[SYMBOL], 0)
         trade_val = 0
         batches = 0
-        cash_change = row["Price"] * shares   # Shares could potentially be a positive or negative number (cash_change will be added in the end; negative shares indicate a short)
+        cash_change = row["Price"] * shares    # Shares could potentially be a positive or negative number (cash_change will be added in the end; negative shares indicate a short)
+        #print cash_change
         portfolio[index[SYMBOL]] = 0  # For a given symbol, a position is effectively cleared
 
         old_price = port_prices.setdefault(index[SYMBOL], row["Price"])
         portfolio_val = 0
+        
+
+        
+        if shares != 0:
+            #print cash_change
+            cash_change = cash_change - flat_commision
+            #print cash_change
+            print "Selling" + " " +index[SYMBOL]
+        
+
         for key, val in portfolio.items():
             portfolio_val += val * port_prices[key]
 
         if row["Signal"] == "Buy" and row["Regime"] == 1:  # Entering a long position
-            batches = np.floor((portfolio_val + cash) * port_value) // np.ceil(batch * row["Price"]) # Maximum number of batches of stocks invested in
-            trade_val = batches * batch * row["Price"] # How much money is put on the line with each trade
-            cash_change -= trade_val  # We are buying shares so cash will go down
-            portfolio[index[SYMBOL]] = batches * batch  # Recording how many shares are currently invested in the stock
-            port_prices[index[SYMBOL]] = row["Price"]   # Record price
-            old_price = row["Price"]
+            batches = np.floor((portfolio_val + cash) * port_value) // np.ceil(batch * row["Price"]) # Maximum number of batches of stocks invested in 
+            trade_val = batches * batch * row["Price"] + flat_commision # How much money is put on the line with each trade
+            if trade_val >  flat_commision:
+                #print trade_val
+                print "Long Position" + " " +index[SYMBOL]
+                cash_change -= trade_val  # We are buying shares so cash will go down
+                portfolio[index[SYMBOL]] = batches * batch  # Recording how many shares are currently invested in the stock
+                port_prices[index[SYMBOL]] = row["Price"]   # Record price
+                old_price = row["Price"]
         elif row["Signal"] == "Sell" and row["Regime"] == -1: # Entering a short
             pass
             # Do nothing; can we provide a method for shorting the market?
@@ -266,11 +280,13 @@ def backtest(signals, cash, port_value = .1, batch = 100):
                 "Profit per Share": pprofit,
                 "Total Profit": batches * batch * pprofit
             }, index = [index]))
+        #print cash, cash_change, row["Signal"],row["Regime"], index[SYMBOL]
         cash += cash_change  # Final change to cash balance
+        
 
     results.sort_index(inplace = True)
     results.index = pd.MultiIndex.from_tuples(results.index, names = ["Date", "Symbol"])
-
+    print portfolio, portfolio_val, cash
     return results
 
 microsoft = web.DataReader("MSFT", "yahoo", start, end)
@@ -300,15 +316,15 @@ signals = ma_crossover_orders([("AAPL", ohlc_adj(apple)),
                               ("HPQ",   ohlc_adj(hp))],
                             fast = 20, slow = 50)
 
-bk = backtest(signals, 1000000)
+bk = backtest(signals, 10000, port_value = .1, batch = 100, flat_commision = 35)
 bk
 
 #bk["Portfolio Value"].groupby(level = 0).apply(lambda x: x[-1]).plot()
 spyder = web.DataReader("^DJA", "yahoo", start, end)
 spyder.iloc[[0,-1],:]
 
-ax_bench = (spyder["Adj Close"] / spyder.ix[0, "Adj Close"]).plot(label = "SPY")
-ax_bench = (bk["Portfolio Value"].groupby(level = 0).apply(lambda x: x[-1]) / 1000000).plot(ax = ax_bench, label = "Portfolio")
-ax_bench.legend(ax_bench.get_lines(), [l.get_label() for l in ax_bench.get_lines()], loc = 'best')
-ax_bench
+#ax_bench = (spyder["Adj Close"] / spyder.ix[0, "Adj Close"]).plot(label = "SPY")
+#ax_bench = (.groupby(level = 0).apply(lambda x: x[-1]) / 1000000).plot(ax = ax_bench, label = "Portfolio")
+#ax_bench.legend(ax_bench.get_lines(), [l.get_label() for l in ax_bench.get_lines()], loc = 'best')
+#ax_bench
 
